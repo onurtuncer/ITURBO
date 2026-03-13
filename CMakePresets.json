@@ -1,0 +1,555 @@
+﻿{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 26,
+    "patch": 0
+  },
+
+  "$comment": "ITurbo CMakePresets — see docs/building.md for setup instructions",
+
+  // =========================================================================
+  // CONFIGURE PRESETS
+  // =========================================================================
+  "configurePresets": [
+
+    // ---------------------------------------------------------------------
+    // Hidden base — shared defaults inherited by everything
+    // ---------------------------------------------------------------------
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ITURBO_ENABLE_WARNINGS": "ON",
+        "ITURBO_ENABLE_WERROR": "OFF",
+        "ITURBO_ENABLE_LTO": "OFF",
+        "ITURBO_ENABLE_SANITIZERS": "OFF",
+        "ITURBO_ENABLE_TESTS": "ON",
+        "ITURBO_ENABLE_BENCHMARKS": "OFF",
+        "ITURBO_ENABLE_APPS": "ON",
+        "ITURBO_ENABLE_DOCS": "OFF",
+        "ITURBO_ENABLE_MPI": "OFF",
+        "ITURBO_ENABLE_OPENMP": "OFF",
+        "ITURBO_ENABLE_PETSC": "OFF",
+        "ITURBO_ENABLE_CGNS": "OFF",
+        "ITURBO_BUILD_SHARED_LIBS": "OFF"
+      }
+    },
+
+    // ---------------------------------------------------------------------
+    // Hidden platform bases
+    // ---------------------------------------------------------------------
+
+    // Linux / container base — GCC 13, MPI + OpenMP on, PETSc on
+    {
+      "name": "base-linux",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc-13",
+        "CMAKE_CXX_COMPILER": "g++-13",
+        "ITURBO_ENABLE_MPI": "ON",
+        "ITURBO_ENABLE_OPENMP": "ON",
+        "ITURBO_ENABLE_PETSC": "ON"
+      }
+    },
+
+    // Windows base — MSVC, no PETSc
+    {
+      "name": "base-windows",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "ITURBO_ENABLE_MPI": "OFF",
+        "ITURBO_ENABLE_OPENMP": "ON",
+        "ITURBO_ENABLE_PETSC": "OFF"
+      }
+    },
+
+    // MinGW cross-compile base (runs on Linux host, targets Windows)
+    {
+      "name": "base-mingw-cross",
+      "hidden": true,
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/mingw-w64-x86_64.cmake",
+      "cacheVariables": {
+        "ITURBO_ENABLE_MPI": "OFF",
+        "ITURBO_ENABLE_OPENMP": "OFF",
+        "ITURBO_ENABLE_PETSC": "OFF",
+        "ITURBO_ENABLE_TESTS": "OFF",
+        "ITURBO_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+
+    // =====================================================================
+    // LINUX / DEV CONTAINER PRESETS
+    // =====================================================================
+
+    {
+      "name": "container-debug",
+      "displayName": "Container — Debug (PETSc + MPI + ASan)",
+      "inherits": "base-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ITURBO_ENABLE_SANITIZERS": "ON",
+        "ITURBO_ENABLE_LTO": "OFF"
+      }
+    },
+
+    {
+      "name": "container-reldebug",
+      "displayName": "Container — RelWithDebInfo (PETSc + MPI)",
+      "inherits": "base-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "ITURBO_ENABLE_SANITIZERS": "OFF",
+        "ITURBO_ENABLE_LTO": "OFF"
+      }
+    },
+
+    {
+      "name": "container-release",
+      "displayName": "Container — Release (PETSc + MPI + LTO)",
+      "inherits": "base-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ITURBO_ENABLE_SANITIZERS": "OFF",
+        "ITURBO_ENABLE_LTO": "ON",
+        "ITURBO_ENABLE_BENCHMARKS": "ON"
+      }
+    },
+
+    {
+      "name": "container-clang-debug",
+      "displayName": "Container — Clang Debug (PETSc + MPI + ASan)",
+      "inherits": "base-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang-17",
+        "CMAKE_CXX_COMPILER": "clang++-17",
+        "ITURBO_ENABLE_SANITIZERS": "ON"
+      }
+    },
+
+    {
+      "name": "container-clang-tidy",
+      "displayName": "Container — Clang-Tidy static analysis",
+      "inherits": "base-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang-17",
+        "CMAKE_CXX_COMPILER": "clang++-17",
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy-17;--warnings-as-errors=*",
+        "ITURBO_ENABLE_SANITIZERS": "OFF",
+        "ITURBO_ENABLE_WERROR": "ON"
+      }
+    },
+
+    // CI-specific: werror on, no sanitizers (faster), benchmarks off
+    {
+      "name": "ci-linux",
+      "displayName": "CI — Linux (PETSc + MPI, WError)",
+      "inherits": "base-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "ITURBO_ENABLE_WERROR": "ON",
+        "ITURBO_ENABLE_SANITIZERS": "OFF",
+        "ITURBO_ENABLE_BENCHMARKS": "OFF"
+      }
+    },
+
+    // =====================================================================
+    // WINDOWS PRESETS  (no PETSc)
+    // =====================================================================
+
+    {
+      "name": "windows-debug",
+      "displayName": "Windows MSVC — Debug (no PETSc)",
+      "inherits": "base-windows",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+
+    {
+      "name": "windows-reldebug",
+      "displayName": "Windows MSVC — RelWithDebInfo (no PETSc)",
+      "inherits": "base-windows",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+
+    {
+      "name": "windows-release",
+      "displayName": "Windows MSVC — Release (no PETSc)",
+      "inherits": "base-windows",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ITURBO_ENABLE_LTO": "ON",
+        "ITURBO_ENABLE_TESTS": "OFF"
+      }
+    },
+
+    // Windows with MS-MPI enabled (requires MS-MPI SDK installed)
+    {
+      "name": "windows-mpi-debug",
+      "displayName": "Windows MSVC — Debug + MS-MPI (no PETSc)",
+      "inherits": "base-windows",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ITURBO_ENABLE_MPI": "ON"
+      }
+    },
+
+    // CI for Windows
+    {
+      "name": "ci-windows",
+      "displayName": "CI — Windows MSVC (no PETSc, WError)",
+      "inherits": "base-windows",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "ITURBO_ENABLE_WERROR": "ON",
+        "ITURBO_ENABLE_MPI": "ON"
+      }
+    },
+
+    // =====================================================================
+    // CROSS-COMPILE PRESETS  (Linux host → Windows target)
+    // =====================================================================
+
+    {
+      "name": "mingw-cross-release",
+      "displayName": "MinGW Cross — Windows x64 Release",
+      "inherits": "base-mingw-cross",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ITURBO_ENABLE_LTO": "ON"
+      }
+    },
+
+    {
+      "name": "mingw-cross-reldebug",
+      "displayName": "MinGW Cross — Windows x64 RelWithDebInfo",
+      "inherits": "base-mingw-cross",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    }
+  ],
+
+  // =========================================================================
+  // BUILD PRESETS
+  // =========================================================================
+  "buildPresets": [
+
+    // Linux / container
+    {
+      "name": "container-debug",
+      "configurePreset": "container-debug",
+      "jobs": 0
+    },
+    {
+      "name": "container-reldebug",
+      "configurePreset": "container-reldebug",
+      "jobs": 0
+    },
+    {
+      "name": "container-release",
+      "configurePreset": "container-release",
+      "jobs": 0
+    },
+    {
+      "name": "container-clang-debug",
+      "configurePreset": "container-clang-debug",
+      "jobs": 0
+    },
+    {
+      "name": "container-clang-tidy",
+      "configurePreset": "container-clang-tidy",
+      "jobs": 0
+    },
+    {
+      "name": "ci-linux",
+      "configurePreset": "ci-linux",
+      "jobs": 0
+    },
+
+    // Windows
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug",
+      "jobs": 0
+    },
+    {
+      "name": "windows-reldebug",
+      "configurePreset": "windows-reldebug",
+      "jobs": 0
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release",
+      "jobs": 0
+    },
+    {
+      "name": "windows-mpi-debug",
+      "configurePreset": "windows-mpi-debug",
+      "jobs": 0
+    },
+    {
+      "name": "ci-windows",
+      "configurePreset": "ci-windows",
+      "jobs": 0
+    },
+
+    // Cross-compile
+    {
+      "name": "mingw-cross-release",
+      "configurePreset": "mingw-cross-release",
+      "jobs": 0
+    },
+    {
+      "name": "mingw-cross-reldebug",
+      "configurePreset": "mingw-cross-reldebug",
+      "jobs": 0
+    }
+  ],
+
+  // =========================================================================
+  // TEST PRESETS
+  // =========================================================================
+  "testPresets": [
+
+    // Hidden base for test settings
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      },
+      "execution": {
+        "jobs": 4,
+        "timeout": 120,
+        "stopOnFailure": false
+      }
+    },
+
+    {
+      "name": "container-debug",
+      "displayName": "Test — container-debug",
+      "inherits": "test-base",
+      "configurePreset": "container-debug"
+    },
+    {
+      "name": "container-reldebug",
+      "displayName": "Test — container-reldebug",
+      "inherits": "test-base",
+      "configurePreset": "container-reldebug"
+    },
+    {
+      "name": "container-clang-debug",
+      "displayName": "Test — container-clang-debug",
+      "inherits": "test-base",
+      "configurePreset": "container-clang-debug"
+    },
+    {
+      "name": "ci-linux",
+      "displayName": "Test — CI Linux",
+      "inherits": "test-base",
+      "configurePreset": "ci-linux",
+      "execution": {
+        "jobs": 4,
+        "timeout": 180,
+        "stopOnFailure": true
+      }
+    },
+    {
+      "name": "windows-debug",
+      "displayName": "Test — windows-debug",
+      "inherits": "test-base",
+      "configurePreset": "windows-debug"
+    },
+    {
+      "name": "windows-mpi-debug",
+      "displayName": "Test — windows-mpi-debug",
+      "inherits": "test-base",
+      "configurePreset": "windows-mpi-debug"
+    },
+    {
+      "name": "ci-windows",
+      "displayName": "Test — CI Windows",
+      "inherits": "test-base",
+      "configurePreset": "ci-windows",
+      "execution": {
+        "jobs": 4,
+        "timeout": 180,
+        "stopOnFailure": true
+      }
+    }
+  ],
+
+  // =========================================================================
+  // PACKAGE PRESETS  (CPack)
+  // =========================================================================
+  "packagePresets": [
+
+    {
+      "name": "linux-tgz",
+      "displayName": "Package — Linux .tar.gz",
+      "configurePreset": "container-release",
+      "generators": [ "TGZ" ],
+      "packageDirectory": "${sourceDir}/dist"
+    },
+    {
+      "name": "windows-zip",
+      "displayName": "Package — Windows .zip",
+      "configurePreset": "windows-release",
+      "generators": [ "ZIP" ],
+      "packageDirectory": "${sourceDir}/dist"
+    },
+    {
+      "name": "windows-installer",
+      "displayName": "Package — Windows NSIS installer",
+      "configurePreset": "windows-release",
+      "generators": [ "NSIS" ],
+      "packageDirectory": "${sourceDir}/dist"
+    },
+    {
+      "name": "mingw-zip",
+      "displayName": "Package — MinGW cross-compiled Windows .zip",
+      "configurePreset": "mingw-cross-release",
+      "generators": [ "ZIP" ],
+      "packageDirectory": "${sourceDir}/dist"
+    }
+  ],
+
+  // =========================================================================
+  // WORKFLOW PRESETS  (configure → build → test in one command)
+  // =========================================================================
+  "workflowPresets": [
+
+    {
+      "name": "dev",
+      "displayName": "Full dev workflow (container-debug)",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "container-debug"
+        },
+        {
+          "type": "build",
+          "name": "container-debug"
+        },
+        {
+          "type": "test",
+          "name": "container-debug"
+        }
+      ]
+    },
+    {
+      "name": "ci-linux",
+      "displayName": "CI Linux workflow",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ci-linux"
+        },
+        {
+          "type": "build",
+          "name": "ci-linux"
+        },
+        {
+          "type": "test",
+          "name": "ci-linux"
+        }
+      ]
+    },
+    {
+      "name": "ci-windows",
+      "displayName": "CI Windows workflow",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ci-windows"
+        },
+        {
+          "type": "build",
+          "name": "ci-windows"
+        },
+        {
+          "type": "test",
+          "name": "ci-windows"
+        }
+      ]
+    },
+    {
+      "name": "release-linux",
+      "displayName": "Release Linux workflow (build + package)",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "container-release"
+        },
+        {
+          "type": "build",
+          "name": "container-release"
+        },
+        {
+          "type": "package",
+          "name": "linux-tgz"
+        }
+      ]
+    },
+    {
+      "name": "release-windows",
+      "displayName": "Release Windows workflow (build + package)",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-release"
+        },
+        {
+          "type": "package",
+          "name": "windows-zip"
+        }
+      ]
+    },
+    {
+      "name": "release-mingw",
+      "displayName": "Release MinGW cross-compile workflow",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "mingw-cross-release"
+        },
+        {
+          "type": "build",
+          "name": "mingw-cross-release"
+        },
+        {
+          "type": "package",
+          "name": "mingw-zip"
+        }
+      ]
+    }
+  ]
+}

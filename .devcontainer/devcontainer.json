@@ -1,0 +1,45 @@
+{
+  "name": "ITurbo Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "UID": "${localEnv:UID}",
+      "GID": "${localEnv:GID}"
+    }
+  },
+
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+  "mounts": [
+    // Persist CMake build cache across container rebuilds
+    "source=iturbo-build-cache,target=/workspace/build,type=volume"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools-extension-pack",
+        "twxs.cmake"
+      ],
+      "settings": {
+        "cmake.configureOnOpen": true,
+        "cmake.buildDirectory": "/workspace/build/dev",
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+      }
+    },
+    "visualstudio": {
+      "internalConsoleOptions": "neverOpen"
+    }
+  },
+
+  "postCreateCommand": "git submodule update --init --recursive",
+
+  "remoteUser": "developer",
+
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  }
+}
