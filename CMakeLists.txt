@@ -153,21 +153,21 @@ endif()
 add_library(iturbo_project_options INTERFACE)
 add_library(ITURBO::ProjectOptions ALIAS iturbo_project_options)
 
-target_compile_features(turbocfd_project_options INTERFACE cxx_std_23)
+target_compile_features(iturbo_project_options INTERFACE cxx_std_23)
 
-target_include_directories(turbocfd_project_options
+target_include_directories(iturbo_project_options
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(turbocfd_project_options
+target_link_libraries(iturbo_project_options
     INTERFACE
         Threads::Threads
 )
 
 if(TURBOCFD_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
-    target_link_libraries(turbocfd_project_options
+    target_link_libraries(iturbo_project_options
         INTERFACE
             OpenMP::OpenMP_CXX
     )
@@ -268,11 +268,11 @@ target_include_directories(iturbo_project_options
 
 add_subdirectory(src)
 
-if(TURBOCFD_ENABLE_APPS AND EXISTS "${CMAKE_SOURCE_DIR}/apps/CMakeLists.txt")
+if(ITURBO_ENABLE_APPS AND EXISTS "${CMAKE_SOURCE_DIR}/apps/CMakeLists.txt")
     add_subdirectory(apps)
 endif()
 
-if(TURBOCFD_ENABLE_TESTS)
+if(ITURBO_ENABLE_TESTS)
     include(CTest)
     enable_testing()
     if(EXISTS "${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt")
@@ -280,7 +280,7 @@ if(TURBOCFD_ENABLE_TESTS)
     endif()
 endif()
 
-if(TURBOCFD_ENABLE_BENCHMARKS AND EXISTS "${CMAKE_SOURCE_DIR}/benchmarks/CMakeLists.txt")
+if(ITURBO_ENABLE_BENCHMARKS AND EXISTS "${CMAKE_SOURCE_DIR}/benchmarks/CMakeLists.txt")
     add_subdirectory(benchmarks)
 endif()
 

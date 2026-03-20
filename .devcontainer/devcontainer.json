@@ -1,21 +1,13 @@
 {
   "name": "ITurbo Dev",
   "build": {
-    "dockerfile": "Dockerfile",
-    "args": {
-      "UID": "${localEnv:UID}",
-      "GID": "${localEnv:GID}"
-    }
+    "dockerfile": "Dockerfile"
   },
-
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-
   "mounts": [
-    // Persist CMake build cache across container rebuilds
     "source=iturbo-build-cache,target=/workspace/build,type=volume"
   ],
-
   "customizations": {
     "vscode": {
       "extensions": [
@@ -34,12 +26,6 @@
       "internalConsoleOptions": "neverOpen"
     }
   },
-
   "postCreateCommand": "git submodule update --init --recursive",
-
-  "remoteUser": "developer",
-
-  "features": {
-    "ghcr.io/devcontainers/features/git:1": {}
-  }
+  "updateRemoteUserUID": false
 }
